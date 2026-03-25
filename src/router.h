@@ -7,6 +7,7 @@ class Router {
 public:
     explicit Router(std::string publicDirectory);
 
+    bool isApiRoute(const std::string& path) const;
     std::string resolveRoute(const std::string& path) const;
     bool isKnownRoute(const std::string& path) const;
     std::string contentTypeForPath(const std::string& path) const;

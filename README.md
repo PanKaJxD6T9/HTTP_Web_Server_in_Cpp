@@ -1,14 +1,15 @@
 # Simple C++ HTTP Server
 
-This project is a minimal HTTP web server written in C++ with Winsock sockets.
+This project is a minimal HTTP web server written in C++ with Winsock sockets. It now also exposes a small backend API endpoint.
 
 ## Features
 
-- Listens on port 8080
+- Listens on port 5555
 - Accepts client connections
 - Parses HTTP GET requests
 - Serves HTML files from the `public` folder
-- Supports routes `/` and `/about`
+- Supports routes
+- Exposes a backend endpoint at `/api/data`
 - Redirects legacy `.html` page URLs to clean routes
 - Returns `404 Not Found` for unknown routes
 - Handles multiple clients with Windows threads
@@ -27,5 +28,5 @@ g++ -std=c++17 -Wall -Wextra -pedantic src/main.cpp src/parser.cpp src/router.cp
 
 Then open:
 
-- `http://localhost:8080/`
-- `http://localhost:8080/about`
+- `http://localhost:5555/`
+- `http://localhost:5555/api/data`

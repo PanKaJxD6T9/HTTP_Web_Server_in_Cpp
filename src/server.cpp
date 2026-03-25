@@ -151,6 +151,13 @@ std::string HttpServer::buildResponseForRequest(const std::string& rawRequest) c
             return HttpResponseBuilder::methodNotAllowed();
         }
 
+        if (router_.isApiRoute(request.path)) {
+            return HttpResponseBuilder::ok(
+                R"({"message": "Hello from C++ server"})",
+                router_.contentTypeForPath(request.path)
+            );
+        }
+
         if (router_.shouldRedirectToCleanRoute(request.path)) {
             return HttpResponseBuilder::redirect(router_.cleanRouteForPath(request.path));
         }

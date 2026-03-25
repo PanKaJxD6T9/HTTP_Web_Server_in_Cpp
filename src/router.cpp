@@ -7,11 +7,23 @@ Router::Router(std::string publicDirectory)
     : publicDirectory_(std::move(publicDirectory)) {
 }
 
+bool Router::isApiRoute(const std::string& path) const {
+    return path == "/api/data";
+}
+
 bool Router::isKnownRoute(const std::string& path) const {
+    if (isApiRoute(path)) {
+        return true;
+    }
+
     return !resolveRoute(path).empty();
 }
 
 std::string Router::resolveRoute(const std::string& path) const {
+    if (isApiRoute(path)) {
+        return "";
+    }
+
     if (path == "/") {
         return publicDirectory_ + "/index.html";
     }
@@ -37,6 +49,10 @@ std::string Router::resolveRoute(const std::string& path) const {
 }
 
 std::string Router::contentTypeForPath(const std::string& path) const {
+    if (path == "/api/data") {
+        return "application/json; charset=UTF-8";
+    }
+
     if (path.size() >= 5 && path.substr(path.size() - 5) == ".html") {
         return "text/html; charset=UTF-8";
     }
@@ -66,6 +82,10 @@ std::string Router::normalizePath(const std::string& path) const {
 }
 
 bool Router::shouldRedirectToCleanRoute(const std::string& path) const {
+    if (isApiRoute(path)) {
+        return false;
+    }
+
     return !cleanRouteForPath(path).empty();
 }
 
