@@ -4,44 +4,52 @@
 #include <sstream>
 #include <stdexcept>
 
-std::string HttpResponseBuilder::ok(const std::string& body, const std::string& contentType) {
-    return buildResponse("HTTP/1.1 200 OK", body, contentType);
+std::string HttpResponseBuilder::ok(const std::string& body, const std::string& contentType, bool includeBody) {
+    return buildResponse("HTTP/1.1 200 OK", body, contentType, "", includeBody);
 }
 
-std::string HttpResponseBuilder::redirect(const std::string& location) {
+std::string HttpResponseBuilder::redirect(const std::string& location, bool includeBody) {
     const std::string body =
         "<html><body><h1>301 Moved Permanently</h1><p>Redirecting to the clean URL.</p></body></html>";
     return buildResponse(
         "HTTP/1.1 301 Moved Permanently",
         body,
         "text/html; charset=UTF-8",
-        "Location: " + location + "\r\n"
+        "Location: " + location + "\r\n",
+        includeBody
     );
 }
 
-std::string HttpResponseBuilder::notFound() {
+std::string HttpResponseBuilder::notFound(bool includeBody) {
     const std::string body =
         "<html><body><h1>404 Not Found</h1><p>The requested route was not found.</p></body></html>";
-    return buildResponse("HTTP/1.1 404 Not Found", body, "text/html; charset=UTF-8");
+    return buildResponse("HTTP/1.1 404 Not Found", body, "text/html; charset=UTF-8", "", includeBody);
 }
 
-std::string HttpResponseBuilder::methodNotAllowed() {
+std::string HttpResponseBuilder::methodNotAllowed(bool includeBody) {
     const std::string body =
-        "<html><body><h1>405 Method Not Allowed</h1><p>Only GET is supported.</p></body></html>";
-    return buildResponse("HTTP/1.1 405 Method Not Allowed", body, "text/html; charset=UTF-8");
+        "<html><body><h1>405 Method Not Allowed</h1><p>Supported methods: GET, HEAD, POST.</p></body></html>";
+    return buildResponse(
+        "HTTP/1.1 405 Method Not Allowed",
+        body,
+        "text/html; charset=UTF-8",
+        "Allow: GET, HEAD, POST\r\n",
+        includeBody
+    );
 }
 
-std::string HttpResponseBuilder::badRequest() {
+std::string HttpResponseBuilder::badRequest(bool includeBody) {
     const std::string body =
         "<html><body><h1>400 Bad Request</h1><p>Unable to parse the HTTP request.</p></body></html>";
-    return buildResponse("HTTP/1.1 400 Bad Request", body, "text/html; charset=UTF-8");
+    return buildResponse("HTTP/1.1 400 Bad Request", body, "text/html; charset=UTF-8", "", includeBody);
 }
 
 std::string HttpResponseBuilder::buildResponse(
     const std::string& statusLine,
     const std::string& body,
     const std::string& contentType,
-    const std::string& extraHeaders
+    const std::string& extraHeaders,
+    bool includeBody
 ) {
     std::ostringstream response;
     response << statusLine << "\r\n";
@@ -50,7 +58,9 @@ std::string HttpResponseBuilder::buildResponse(
     response << "Content-Length: " << body.size() << "\r\n";
     response << "Connection: close\r\n";
     response << "\r\n";
-    response << body;
+    if (includeBody) {
+        response << body;
+    }
     return response.str();
 }
 
