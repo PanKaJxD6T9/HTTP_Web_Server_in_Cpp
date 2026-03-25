@@ -8,7 +8,7 @@ This project is a minimal HTTP web server written in C++ with Winsock sockets.
 - Accepts client connections
 - Parses HTTP GET requests
 - Serves HTML files from the `public` folder
-- Supports routes `/` and `/about`
+- Supports routes
 - Redirects legacy `.html` page URLs to clean routes
 - Returns `404 Not Found` for unknown routes
 - Handles multiple clients with Windows threads
