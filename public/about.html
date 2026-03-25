@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | Project Web Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="about.css">
+</head>
+
+<body>
+    <div class="noise"></div>
+
+    <header>
+        <div class="container nav">
+            <a class="brand" href="/" aria-label="Back to home">
+                <span class="brand-mark" aria-hidden="true"></span>
+                Project Web Server (C++)
+            </a>
+            <nav class="links" aria-label="Primary">
+                <a href="/">Home</a>
+                <a href="#journey">Journey</a>
+                <a href="#architecture">Architecture</a>
+                <a class="active" href="/about">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <div>
+                <span class="kicker">About the project</span>
+                <h1>Engineering a C++ HTTP server from first principles.</h1>
+                <p class="lead">
+                    This project focuses on practical systems programming: from parsing raw requests and routing paths
+                    to serving static files cleanly. It was built to transform networking theory into something you can
+                    run,
+                    inspect, and extend with confidence.
+                </p>
+            </div>
+
+            <aside class="hero-card" aria-label="Project quick stats">
+                <div class="hero-grid">
+                    <div class="mini">
+                        <div class="mini-label">Language</div>
+                        <div class="mini-value">C++</div>
+                    </div>
+                    <div class="mini">
+                        <div class="mini-label">Protocol</div>
+                        <div class="mini-value">HTTP/1.1</div>
+                    </div>
+                    <div class="mini">
+                        <div class="mini-label">Routes</div>
+                        <div class="mini-value" id="routeCount">0</div>
+                    </div>
+                    <div class="mini">
+                        <div class="mini-label">Mode</div>
+                        <div class="mini-value" id="modeBadge">Learning</div>
+                    </div>
+                </div>
+            </aside>
+        </section>
+
+        <section id="journey" class="panel reveal">
+            <h2>Build Journey</h2>
+            <p>Click each milestone to reveal what it contributed to the server.</p>
+            <div class="timeline" id="timeline">
+                <article class="step active"
+                    data-detail="Implemented socket setup, listening, and connection lifecycle control.">
+                    <h3>1. Core Server Loop</h3>
+                    <p>Established request acceptance and response write-back flow.</p>
+                </article>
+                <article class="step"
+                    data-detail="Introduced request parser logic to extract method, path, headers, and body safely.">
+                    <h3>2. Request Parsing</h3>
+                    <p>Turned raw bytes into structured HTTP request data.</p>
+                </article>
+                <article class="step" data-detail="Added path-based dispatching so endpoints can evolve independently.">
+                    <h3>3. Routing Layer</h3>
+                    <p>Mapped incoming routes to dedicated handlers.</p>
+                </article>
+                <article class="step"
+                    data-detail="Enabled file reads from the public directory and polished response formatting.">
+                    <h3>4. Static Content</h3>
+                    <p>Served HTML pages like home and about through clean responses.</p>
+                </article>
+            </div>
+            <div class="detail" id="detailBox">Implemented socket setup, listening, and connection lifecycle control.
+            </div>
+        </section>
+
+        <section id="architecture" class="panel reveal">
+            <h2>Request Flow Architecture</h2>
+            <p>Toggle the flow view to highlight how a client request moves through the codebase.</p>
+            <div class="arch" id="archFlow">
+                <div class="node"><small>Step 1</small><strong>Socket Accept</strong></div>
+                <div class="node"><small>Step 2</small><strong>Request Parser</strong></div>
+                <div class="node"><small>Step 3</small><strong>Router</strong></div>
+                <div class="node"><small>Step 4</small><strong>Response Writer</strong></div>
+            </div>
+            <div class="toggle">
+                <button class="btn" id="toggleModeBtn" type="button">Switch to Production Mode</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        Built to learn deeply, designed to scale cleanly.
+    </footer>
+
+    <script>
+        const revealPanels = document.querySelectorAll('.reveal');
+        const routeCount = document.getElementById('routeCount');
+        const modeBadge = document.getElementById('modeBadge');
+        const toggleModeBtn = document.getElementById('toggleModeBtn');
+        const steps = document.querySelectorAll('.step');
+        const detailBox = document.getElementById('detailBox');
+        let inProduction = false;
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.2 });
+
+        revealPanels.forEach((panel) => observer.observe(panel));
+
+        // Animate a lightweight stat counter for route count.
+        (function animateRouteCount() {
+            const target = 6;
+            const duration = 1100;
+            const start = performance.now();
+
+            function tick(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                routeCount.textContent = String(Math.round(target * (1 - Math.pow(1 - progress, 3))));
+
+                if (progress < 1) {
+                    requestAnimationFrame(tick);
+                }
+            }
+
+            requestAnimationFrame(tick);
+        })();
+
+        steps.forEach((step) => {
+            step.addEventListener('click', () => {
+                steps.forEach((item) => item.classList.remove('active'));
+                step.classList.add('active');
+                detailBox.textContent = step.dataset.detail || '';
+            });
+        });
+
+        toggleModeBtn.addEventListener('click', () => {
+            inProduction = !inProduction;
+
+            if (inProduction) {
+                modeBadge.textContent = 'Production';
+                toggleModeBtn.textContent = 'Switch to Learning Mode';
+            } else {
+                modeBadge.textContent = 'Learning';
+                toggleModeBtn.textContent = 'Switch to Production Mode';
+            }
+        });
+    </script>
+</body>
+
+</html>

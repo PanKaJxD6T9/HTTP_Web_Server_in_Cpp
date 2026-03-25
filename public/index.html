@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Web Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div class="grain"></div>
+
+    <header>
+        <div class="container nav">
+            <a class="brand" href="#top" aria-label="Project Web Server home">
+                <span class="brand-dot" aria-hidden="true"></span>
+                Project Web Server (C++)
+            </a>
+            <nav class="nav-links" aria-label="Primary">
+                <a href="#features">Features</a>
+                <a href="#performance">Performance</a>
+                <a href="/about">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="top" class="container">
+        <section class="hero">
+            <div>
+                <span class="eyebrow">HTTP from scratch, modern by design</span>
+                <h1>Build, route, and serve with a fast C++ web server.</h1>
+                <p class="lead">
+                    A hands-on project that turns low-level networking concepts into a practical HTTP server.
+                    Parse requests, route intelligently, and return clean responses with predictable performance.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#performance" id="launchBtn">View Live Metrics</a>
+                    <a class="btn btn-secondary" href="/about">See Project Story</a>
+                </div>
+            </div>
+
+            <aside class="hero-panel" aria-label="Server terminal preview">
+                <div class="terminal-head" aria-hidden="true">
+                    <span class="dot d1"></span>
+                    <span class="dot d2"></span>
+                    <span class="dot d3"></span>
+                </div>
+                <div class="terminal-body" id="terminalPreview">
+                    <div class="line"><span class="cmd">$ make run</span></div>
+                    <div class="line">Compiling <span class="good">server.cpp</span> and modules...</div>
+                    <div class="line"><span class="good">Server listening on http://localhost:8080</span></div>
+                    <div class="line"><span class="warn">GET / -> 200 OK</span> | latency: 3ms</div>
+                </div>
+            </aside>
+        </section>
+
+        <section id="features" class="section-card reveal">
+            <h2>What Makes This Server Project Special</h2>
+            <div class="cards">
+                <article class="feature">
+                    <h3>Request Parsing</h3>
+                    <p>Decodes incoming HTTP requests into clear C++ structures for robust route handling.</p>
+                </article>
+                <article class="feature">
+                    <h3>Clean Routing</h3>
+                    <p>Maps paths to handlers, enabling modular endpoints and easy feature expansion.</p>
+                </article>
+                <article class="feature">
+                    <h3>Static File Serving</h3>
+                    <p>Delivers pages directly from the public folder with a straightforward and reliable flow.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="performance" class="section-card reveal">
+            <h2>Runtime Snapshot</h2>
+            <p>Interactive counters animate when this section becomes visible, simulating live server telemetry.</p>
+            <div style="margin: 0.8rem 0 0.4rem;">
+                <span id="serverStatus" class="status online">
+                    <span class="pulse" aria-hidden="true"></span>
+                    Server Online
+                </span>
+            </div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value" data-target="1200" data-suffix="+">0</div>
+                    <div class="metric-label">Requests Handled</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" data-target="3" data-suffix="ms">0</div>
+                    <div class="metric-label">Avg Latency</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" data-target="99" data-suffix="%">0</div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        Crafted for systems learners: C++, sockets, HTTP, and real-world architecture.
+    </footer>
+
+    <script>
+        const revealItems = document.querySelectorAll('.reveal');
+        const metrics = document.querySelectorAll('.metric-value');
+        const statusChip = document.getElementById('serverStatus');
+        let countersStarted = false;
+
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+
+                    if (entry.target.id === 'performance' && !countersStarted) {
+                        countersStarted = true;
+                        startCounters();
+                    }
+                }
+            });
+        }, { threshold: 0.2 });
+
+        revealItems.forEach((item) => revealObserver.observe(item));
+
+        function startCounters() {
+            metrics.forEach((metric) => {
+                const target = Number(metric.dataset.target || 0);
+                const suffix = metric.dataset.suffix || '';
+                const duration = 1400;
+                const start = performance.now();
+
+                function tick(now) {
+                    const progress = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const value = Math.round(target * eased);
+                    metric.textContent = value + suffix;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(tick);
+                    }
+                }
+
+                requestAnimationFrame(tick);
+            });
+        }
+
+        // Small interaction to mimic a real status monitor.
+        setInterval(() => {
+            const now = new Date();
+            const active = now.getSeconds() % 10 !== 0;
+
+            if (active) {
+                statusChip.className = 'status online';
+                statusChip.innerHTML = '<span class="pulse" aria-hidden="true"></span>Server Online';
+            } else {
+                statusChip.className = 'status idle';
+                statusChip.innerHTML = '<span class="pulse" aria-hidden="true"></span>Idle Tick';
+            }
+        }, 1000);
+
+        // A subtle click ripple effect on the primary button.
+        const launchBtn = document.getElementById('launchBtn');
+        launchBtn.addEventListener('click', (event) => {
+            const ripple = document.createElement('span');
+            ripple.style.position = 'absolute';
+            ripple.style.left = event.offsetX + 'px';
+            ripple.style.top = event.offsetY + 'px';
+            ripple.style.width = '8px';
+            ripple.style.height = '8px';
+            ripple.style.borderRadius = '999px';
+            ripple.style.background = 'rgba(255, 255, 255, 0.9)';
+            ripple.style.transform = 'translate(-50%, -50%) scale(1)';
+            ripple.style.opacity = '0.85';
+            ripple.style.transition = 'transform 500ms ease, opacity 500ms ease';
+            launchBtn.appendChild(ripple);
+
+            requestAnimationFrame(() => {
+                ripple.style.transform = 'translate(-50%, -50%) scale(16)';
+                ripple.style.opacity = '0';
+            });
+
+            setTimeout(() => ripple.remove(), 520);
+        });
+    </script>
+</body>
+
+</html>
