@@ -1,0 +1,31 @@
+# Build outputs
+server
+server.exe
+*.o
+*.obj
+*.out
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.exp
+*.pdb
+*.ilk
+
+# Logs and temp files
+*.log
+*.tmp
+*.cache
+
+# Editor/IDE
+.vscode/
+.vs/
+*.suo
+*.user
+*.VC.db
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
