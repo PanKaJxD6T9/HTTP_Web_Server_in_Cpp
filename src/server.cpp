@@ -7,9 +7,12 @@
 #include <cerrno>
 #include <cctype>
 #include <cstring>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <map>
 #include <unordered_map>
 #include <utility>
 
@@ -114,8 +117,8 @@ std::string htmlEscape(const std::string& value) {
     return escaped;
 }
 
-std::unordered_map<std::string, std::string> parseFormBody(const std::string& body) {
-    std::unordered_map<std::string, std::string> fields;
+std::map<std::string, std::string> parseFormBody(const std::string& body) {
+    std::map<std::string, std::string> fields;
     std::istringstream bodyStream(body);
     std::string pair;
 
@@ -131,15 +134,129 @@ std::unordered_map<std::string, std::string> parseFormBody(const std::string& bo
     return fields;
 }
 
-std::string buildContactSubmissionPage(const std::unordered_map<std::string, std::string>& fields) {
-    const auto nameIt = fields.find("name");
-    const auto emailIt = fields.find("email");
-    const auto messageIt = fields.find("message");
+std::string csvEscape(const std::string& value) {
+    std::string escaped = "\"";
 
-    const std::string name = nameIt == fields.end() ? "Guest" : htmlEscape(nameIt->second);
-    const std::string email = emailIt == fields.end() ? "Not provided" : htmlEscape(emailIt->second);
-    const std::string message = messageIt == fields.end() ? "" : htmlEscape(messageIt->second);
+    for (const char ch : value) {
+        if (ch == '"') {
+            escaped += "\"\"";
+            continue;
+        }
 
+        escaped.push_back(ch);
+    }
+
+    escaped += "\"";
+    return escaped;
+}
+
+std::string currentTimestamp() {
+    SYSTEMTIME localTime{};
+    GetLocalTime(&localTime);
+
+    std::ostringstream timestamp;
+    timestamp << std::setfill('0')
+              << localTime.wYear << '-'
+              << std::setw(2) << localTime.wMonth << '-'
+              << std::setw(2) << localTime.wDay << ' '
+              << std::setw(2) << localTime.wHour << ':'
+              << std::setw(2) << localTime.wMinute << ':'
+              << std::setw(2) << localTime.wSecond;
+    return timestamp.str();
+}
+
+std::string routeSlug(const std::string& routePath) {
+    if (routePath == "/") {
+        return "home";
+    }
+
+    std::string slug = routePath;
+    if (!slug.empty() && slug.front() == '/') {
+        slug.erase(slug.begin());
+    }
+
+    std::replace(slug.begin(), slug.end(), '/', '_');
+    std::replace(slug.begin(), slug.end(), '\\', '_');
+
+    for (char& ch : slug) {
+        if (!std::isalnum(static_cast<unsigned char>(ch)) && ch != '_' && ch != '-') {
+            ch = '_';
+        }
+    }
+
+    return slug.empty() ? "form" : slug;
+}
+
+std::string routeLabel(const std::string& routePath) {
+    return routePath == "/" ? "/" : routePath;
+}
+
+std::string serializeFields(const std::map<std::string, std::string>& fields) {
+    std::ostringstream serialized;
+    bool first = true;
+
+    for (const auto& entry : fields) {
+        if (!first) {
+            serialized << " | ";
+        }
+
+        serialized << entry.first << '=' << entry.second;
+        first = false;
+    }
+
+    return serialized.str();
+}
+
+std::string persistSubmission(const std::string& routePath, const std::map<std::string, std::string>& fields) {
+    const std::string submissionsDirectory = "submissions";
+    const DWORD createDirectoryResult = CreateDirectoryA(submissionsDirectory.c_str(), nullptr);
+    if (createDirectoryResult == 0 && GetLastError() != ERROR_ALREADY_EXISTS) {
+        throw std::runtime_error("Failed to create submissions directory");
+    }
+
+    const std::string csvPath = submissionsDirectory + "\\" + routeSlug(routePath) + "_form_submissions.csv";
+    std::ifstream existingFile(csvPath, std::ios::binary | std::ios::ate);
+    const bool needsHeader = !existingFile || existingFile.tellg() == 0;
+
+    std::ofstream file(csvPath, std::ios::app);
+    if (!file) {
+        throw std::runtime_error("Failed to open submissions file");
+    }
+
+    if (needsHeader) {
+        file << "submitted_at,route,form_data\n";
+    }
+
+    file << csvEscape(currentTimestamp()) << ','
+         << csvEscape(routeLabel(routePath)) << ','
+         << csvEscape(serializeFields(fields)) << '\n';
+
+    return csvPath;
+}
+
+std::string buildSubmissionDetails(const std::map<std::string, std::string>& fields) {
+    std::ostringstream page;
+    page << "<dl>";
+
+    if (fields.empty()) {
+        page << "<dt>Fields</dt><dd>No form fields were submitted.</dd>";
+    } else {
+        for (const auto& entry : fields) {
+            page << "<dt>" << htmlEscape(entry.first) << "</dt><dd>"
+                 << (entry.second.empty() ? "Empty value" : htmlEscape(entry.second))
+                 << "</dd>";
+        }
+    }
+
+    page << "</dl>";
+    return page.str();
+}
+
+std::string buildSubmissionPage(
+    const std::string& routePath,
+    const std::map<std::string, std::string>& fields,
+    const std::string& savedPath
+) {
     std::ostringstream page;
     page << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
          << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
@@ -147,12 +264,14 @@ std::string buildContactSubmissionPage(const std::unordered_map<std::string, std
          << "<style>body{font-family:Segoe UI,sans-serif;background:#f5f1ea;color:#1f2933;margin:0;padding:32px;}"
          << ".card{max-width:640px;margin:0 auto;background:#fff;padding:24px;border-radius:16px;"
          << "box-shadow:0 16px 40px rgba(31,41,51,.12);}h1{margin-top:0;}dt{font-weight:700;margin-top:12px;}"
-         << "dd{margin:4px 0 0;}a{color:#0f766e;text-decoration:none;}</style></head><body><main class=\"card\">"
-         << "<h1>Thanks, " << name << ".</h1>"
-         << "<p>Your form was submitted with a real HTTP POST request.</p><dl>"
-         << "<dt>Email</dt><dd>" << email << "</dd>"
-         << "<dt>Message</dt><dd>" << (message.empty() ? "No message provided." : message) << "</dd>"
-         << "</dl><p><a href=\"/contact\">Submit another response</a></p></main></body></html>";
+         << "dd{margin:4px 0 0;white-space:pre-wrap;}code{background:#eef2f6;padding:2px 6px;border-radius:8px;}"
+         << "a{color:#0f766e;text-decoration:none;}</style></head><body><main class=\"card\">"
+         << "<h1>Form submitted successfully.</h1>"
+         << "<p>Your POST request to <code>" << htmlEscape(routeLabel(routePath))
+         << "</code> was accepted and saved.</p>"
+         << buildSubmissionDetails(fields)
+         << "<p>Saved to <code>" << htmlEscape(savedPath) << "</code>.</p>"
+         << "<p><a href=\"" << htmlEscape(routePath) << "\">Submit another response</a></p></main></body></html>";
     return page.str();
 }
 
@@ -293,21 +412,32 @@ std::string HttpServer::buildResponseForRequest(const std::string& rawRequest) c
             );
         }
 
-        if (request.method == "POST" && request.path == "/contact") {
+        if (request.method == "POST") {
             const auto contentTypeIt = request.headers.find("content-type");
             if (contentTypeIt == request.headers.end()
                 || contentTypeIt->second.find("application/x-www-form-urlencoded") == std::string::npos) {
                 return HttpResponseBuilder::badRequest();
             }
 
+            const std::string canonicalPath = router_.shouldRedirectToCleanRoute(request.path)
+                ? router_.cleanRouteForPath(request.path)
+                : request.path;
+
+            if (!router_.isKnownRoute(canonicalPath)) {
+                return HttpResponseBuilder::notFound();
+            }
+
+            const std::string filePath = router_.resolveRoute(canonicalPath);
+            if (filePath.empty() || router_.contentTypeForPath(filePath) != "text/html; charset=UTF-8") {
+                return HttpResponseBuilder::methodNotAllowed();
+            }
+
+            const auto fields = parseFormBody(request.body);
+            const std::string savedPath = persistSubmission(canonicalPath, fields);
             return HttpResponseBuilder::ok(
-                buildContactSubmissionPage(parseFormBody(request.body)),
+                buildSubmissionPage(canonicalPath, fields, savedPath),
                 "text/html; charset=UTF-8"
             );
-        }
-
-        if (request.method == "POST") {
-            return HttpResponseBuilder::notFound();
         }
 
         if (router_.shouldRedirectToCleanRoute(request.path)) {
